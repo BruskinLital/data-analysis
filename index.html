@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            padding: 40px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .heatmap-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .heatmap-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .heatmap-wrapper {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .matrix {
+            display: grid;
+            grid-template-columns: repeat(5, 55px);
+            grid-template-rows: repeat(5, 55px);
+            gap: 2px;
+        }
+        
+        .cell {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .cell:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            pointer-events: none;
+            margin-bottom: 8px;
+            z-index: 100;
+        }
+        
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #333;
+        }
+        
+        .cell:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .empty-cell {
+            visibility: hidden;
+        }
+        
+        .divider {
+            width: 100%;
+            max-width: 700px;
+            height: 1px;
+            background: #ddd;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 02P -->
+    <div class="heatmap-section">
+        <div class="heatmap-title">02P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-02p"></div>
+        </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- 06P -->
+    <div class="heatmap-section">
+        <div class="heatmap-title">06P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-06p"></div>
+        </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- 07P -->
+    <div class="heatmap-section">
+        <div class="heatmap-title">07P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-07p"></div>
+        </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- 09P -->
+    <div class="heatmap-section">
+        <div class="heatmap-title">09P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-09p"></div>
+        </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- 16P -->
+    <div class="heatmap-section">
+        <div class="heatmap-title">16P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-16p"></div>
+        </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- 17P -->
+    <div class="heatmap-section">
+        <div class="heatmap-title">17P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-17p"></div>
+        </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- 19P -->
+    <div class="heatmap-section">
+        <div class="heatmap-title">19P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-19p"></div>
+        </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- 20P -->
+    <div class="heatmap-section">
+        <div class="heatmap-title">20P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-20p"></div>
+        </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- 21P -->
+    <div class="heatmap-section">
+        <div class="heatmap-title">21P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-21p"></div>
+        </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- 22P -->
+    <div class="heatmap-section">
+        <div class="heatmap-title">22P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-22p"></div>
+        </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- 23P -->
+    <div class="heatmap-section">
+        <div class="heatmap-title">23P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-23p-left"></div>
+            <div class="matrix" id="matrix-23p-right"></div>
+        </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- 24P -->
+    <div class="heatmap-section">
+        <div class="heatmap-title">24P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-24p-left"></div>
+            <div class="matrix" id="matrix-24p-right"></div>
+        </div>
+    </div>
+
+    <script>
+        // ============== ALL P DATA ==============
+
+        // 02_P (from 2א 16.11.csv)
+        const data02P = {
+            1: 21.9, 2: 24.2, 3: 23.1, 4: 37.3, 5: 36.3,
+            7: 0.24, 8: 0.22, 9: 0.05, 10: 0.06,
+            13: 0.011, 14: 0.013, 15: 0.003,
+            19: 0.001, 20: 0.006, 25: 0.01
+        };
+
+        // 06_P (from דיווח תוצאות 18.11.25 Anew.csv)
+        const data06P = {
+            1: 19.72, 2: 30.849, 3: 22.784, 4: 25.803, 5: 18.278,
+            7: 0.463, 8: 0.472, 9: 0.4, 10: 0.589,
+            13: 0.022, 14: 0.019, 15: 0.012,
+            19: 0.005, 20: 0.017, 25: 0.006
+        };
+
+        // 07_P (from דיווח תוצאות 18.11.25 Anew.csv)
+        const data07P = {
+            1: 19.855, 2: 12.421, 3: 17.197, 4: 22.469, 5: 18.143,
+            7: 0.176, 8: 0.132, 9: 0.239, 10: 0.186,
+            13: 0.014, 14: 0.01, 15: 0.008,
+            19: 0.003, 20: 0.003, 25: 0.001
+        };
+
+        // 09_P (from תוצאות 23.11.25.csv)
+        const data09P = {
+            1: 0.189, 2: 0.266, 3: 0.471, 4: 0.427, 5: 0.349,
+            6: 1.196, 7: 0.078, 8: 0.801, 9: 0.026, 10: 0.338,
+            11: 0.481, 12: 0.037, 13: 0.004, 14: 0.025, 15: 0.004,
+            16: 0.006, 17: 0.009, 18: 0.036, 19: 0.012, 20: 0.003,
+            21: 0.002, 22: 0.003, 23: 0.003, 24: 0.008, 25: 0.003
+        };
+
+        // 16_P (from דיווח תוצאות 21.11.25 A1.csv)
+        const data16P = {
+            1: 17.51, 2: 20.835, 3: 15.059, 4: 14.184, 5: 12.317,
+            7: 0.801, 8: 0.696, 9: 0.411, 10: 0.525,
+            13: 0.048, 14: 0.026, 15: 0.102,
+            19: 0.007, 20: 0.002, 25: 0.007
+        };
+
+        // 17_P (from דיווח תוצאות 21.11.25 A1.csv)
+        const data17P = {
+            1: 52.75, 2: 44.99, 3: 50.24, 4: 55.2, 5: 100.99,
+            6: 10.33, 7: 17.57, 8: 13.6, 9: 37, 10: 27.19,
+            11: 10.45, 12: 2.39, 13: 4.23, 14: 1.1, 15: 0.02,
+            16: 1.04, 17: 1.34, 18: 0.13, 19: 0.39, 20: 0.21,
+            21: 0.16, 22: 0.09, 23: 0.17, 24: 0.14, 25: 0.67
+        };
+
+        // 19_P (from 06F 19P.csv)
+        const data19P = {
+            1: 15.97, 2: 16.81, 3: 7.41, 4: 21.89, 5: 29.16,
+            6: 7.80, 7: 8.82, 8: 1.15, 9: 2.65, 10: 2.52,
+            11: 4.72, 12: 4.32, 13: 0.28, 14: 6.78, 15: 1.13,
+            16: 0.73, 17: 4.78, 18: 3.57, 19: 4.83, 20: 1.57,
+            21: 6.68, 22: 16.93, 23: 1.24, 24: 1.19, 25: 2.61
+        };
+
+        // 20_P (from דיווח תוצאות 21.11.25 A1.csv)
+        const data20P = {
+            1: 20.31, 2: 25.92, 3: 22.38, 4: 28, 5: 32.31,
+            6: 9.58, 7: 1.43, 8: 4, 9: 5.38, 10: 12,
+            11: 4.61, 12: 10.2, 13: 6.27, 14: 3.01, 15: 10.09,
+            16: 3.59, 17: 5.93, 18: 0.7, 19: 5.56, 20: 2.13,
+            21: 11.89, 22: 0.76, 23: 10.65, 24: 5.65, 25: 1.21
+        };
+
+        // 21_P (from תוצאות 23.11.25.csv)
+        const data21P = {
+            1: 36.2, 2: 40.61, 3: 42.55, 4: 36.4, 5: 33.18,
+            6: 2.23, 7: 0.63, 8: 0.18, 9: 0.39, 10: 0.11,
+            11: 0.07, 12: 0.31, 13: 0.15, 14: 0.2, 15: 0.96,
+            16: 0.05, 17: 1, 18: 0.12, 19: 0.23, 20: 0.05,
+            21: 0.2, 22: 0.05, 23: 0.35, 24: 0.07, 25: 0.07
+        };
+
+        // 22_P (from 22 P.csv)
+        const data22P = {
+            1: 31.51, 2: 36.36, 3: 69.42, 4: 37.20, 5: 41.02,
+            6: 1.89, 7: 0.30, 8: 0.29, 9: 0.26, 10: 0.31,
+            11: 0.42, 12: 0.17, 13: 0.27, 14: 0.62, 15: 0.18,
+            16: 0.18, 17: 0.60, 18: 0.22, 19: 0.22, 20: 0.18,
+            21: 0.42, 22: 0.32, 23: 0.19, 24: 0.77, 25: 0.19
+        };
+
+        // 23_P (from 23P 24P.csv)
+        const data23P = {
+            1: 30.54, 2: 32.93, 3: 32.35, 4: 35.26, 5: 32.35,
+            6: 2.67, 7: 0.16, 8: 0.18, 9: 0.19, 10: 1.50,
+            11: 0.18, 12: 0.20, 13: 0.24, 14: 0.28, 15: 0.31,
+            16: 0.17, 17: 0.17, 18: 0.17, 19: 0.17, 20: 0.17,
+            21: 0.17, 22: 0.16, 23: 0.17, 24: 0.17, 25: 0.18,
+            26: 35.34, 27: 25.56, 28: 31.67, 29: 70.42, 30: 41.97,
+            31: 0.50, 32: 3.91, 33: 0.48, 34: 0.37, 35: 0.96,
+            36: 0.18, 37: 0.19, 38: 0.18, 39: 0.18, 40: 0.25,
+            41: 0.17, 42: 0.16, 43: 0.17, 44: 0.21, 45: 0.16,
+            46: 0.17, 47: 0.18, 48: 0.17, 49: 0.16, 50: 0.16
+        };
+
+        // 24_P (from 23P 24P.csv)
+        const data24P = {
+            1: 2.85, 2: 5.46, 3: 3.13, 4: 2.90, 5: 2.76,
+            6: 0.16, 7: 0.48, 8: 0.60, 9: 0.15, 10: 0.18,
+            11: 0.61, 12: 0.16, 13: 0.17, 14: 0.16, 15: 0.77,
+            16: 0.16, 17: 1.47, 18: 0.18, 19: 0.18, 20: 0.26,
+            21: 0.48, 22: 0.17, 23: 0.17, 24: 0.20, 25: 0.19,
+            26: 41.39, 27: 38.17, 28: 60.31, 29: 44.48, 30: 34.44,
+            31: 0.18, 32: 0.45, 33: 0.16, 34: 0.16, 35: 0.17,
+            36: 0.23, 37: 0.06, 38: 0.05, 39: 0.22, 40: 0.08,
+            41: 0.32, 42: 0.07, 43: 0.06, 44: 0.18, 45: 0.04,
+            46: 0.05, 47: 0.75, 48: 0.32, 49: 0.07, 50: 0.45
+        };
+
+        // ============== GLOBAL SCALE (updated) ==============
+        const globalMin = 0.001;
+        const globalMax = 100.99;  // Updated to include 17_P_05
+
+        // ============== COLOR FUNCTION ==============
+        function getColor(value) {
+            const lnMin = Math.log(globalMin + 0.0001);
+            const lnMax = Math.log(globalMax + 0.0001);
+            const lnVal = Math.log(value + 0.0001);
+            
+            let ratio = (lnVal - lnMin) / (lnMax - lnMin);
+            ratio = Math.max(0, Math.min(1, ratio));
+            ratio = Math.pow(ratio, 0.6);
+            
+            const hue = 210;
+            const saturation = 40 + ratio * 60;
+            const lightness = 90 - ratio * 70;
+            
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        }
+
+        // ============== CREATE MATRIX FUNCTIONS ==============
+        
+        // Create 5x5 matrix
+        function createMatrix5x5(containerId, data, rightToLeft = false) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 5; col++) {
+                    const rowFromBottom = 4 - row;
+                    let position;
+                    if (rightToLeft) {
+                        const colFromRight = 4 - col;
+                        position = rowFromBottom * 5 + colFromRight + 1;
+                    } else {
+                        position = rowFromBottom * 5 + col + 1;
+                    }
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    if (data[position] !== undefined) {
+                        cell.style.background = getColor(data[position]);
+                        
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'tooltip';
+                        tooltip.textContent = data[position];
+                        cell.appendChild(tooltip);
+                    } else {
+                        cell.classList.add('empty-cell');
+                    }
+                    
+                    container.appendChild(cell);
+                }
+            }
+        }
+        
+        // Create 5x5 matrix for 10x5 split
+        function createMatrixSplit(containerId, data, startPos) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 5; col++) {
+                    const rowFromBottom = 4 - row;
+                    const position = startPos + rowFromBottom * 5 + col;
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    if (data[position] !== undefined) {
+                        cell.style.background = getColor(data[position]);
+                        
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'tooltip';
+                        tooltip.textContent = data[position];
+                        cell.appendChild(tooltip);
+                    } else {
+                        cell.classList.add('empty-cell');
+                    }
+                    
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        // ============== BUILD ALL HEATMAPS ==============
+        
+        // 5x5 matrices (right to left for 02, 06, 07, 16)
+        createMatrix5x5('matrix-02p', data02P, true);
+        createMatrix5x5('matrix-06p', data06P, true);
+        createMatrix5x5('matrix-07p', data07P, true);
+        createMatrix5x5('matrix-16p', data16P, true);
+        
+        // 5x5 matrices (left to right)
+        createMatrix5x5('matrix-09p', data09P, false);
+        createMatrix5x5('matrix-17p', data17P, false);
+        createMatrix5x5('matrix-19p', data19P, false);
+        createMatrix5x5('matrix-20p', data20P, false);
+        createMatrix5x5('matrix-21p', data21P, false);
+        createMatrix5x5('matrix-22p', data22P, false);
+        
+        // 10x5 split matrices
+        createMatrixSplit('matrix-23p-left', data23P, 1);
+        createMatrixSplit('matrix-23p-right', data23P, 26);
+        createMatrixSplit('matrix-24p-left', data24P, 1);
+        createMatrixSplit('matrix-24p-right', data24P, 26);
+    </script>
+</body>
+</html>
