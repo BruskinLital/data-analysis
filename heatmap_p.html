@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .heatmap-container {
+            display: grid;
+            grid-template-columns: repeat(5, 80px);
+            grid-template-rows: repeat(5, 80px);
+            gap: 2px;
+        }
+        
+        .cell {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            pointer-events: none;
+            margin-bottom: 8px;
+            z-index: 100;
+        }
+        
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #333;
+        }
+        
+        .cell:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .empty-cell {
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="heatmap-container" id="heatmap"></div>
+
+    <script>
+        // Data from CSV - only P values
+        const data = {
+            1: 21.9,
+            2: 24.2,
+            3: 23.1,
+            4: 37.3,
+            5: 36.3,
+            7: 0.24,
+            8: 0.22,
+            9: 0.05,
+            10: 0.06,
+            13: 0.011,
+            14: 0.013,
+            15: 0.003,
+            19: 0.001,
+            20: 0.006,
+            25: 0.01
+        };
+
+        // GLOBAL scale across ALL heatmaps
+        const globalMin = 0.001;
+        const globalMax = 70.42;
+
+        // Color function - higher value = darker blue, enhanced sensitivity at low values
+        function getColor(value) {
+            // Use natural log for more sensitivity at low values
+            const lnMin = Math.log(globalMin + 0.0001);
+            const lnMax = Math.log(globalMax + 0.0001);
+            const lnVal = Math.log(value + 0.0001);
+            
+            let ratio = (lnVal - lnMin) / (lnMax - lnMin);
+            ratio = Math.max(0, Math.min(1, ratio));
+            
+            // Apply power function for extra sensitivity at low values
+            ratio = Math.pow(ratio, 0.6);
+            
+            const hue = 210;
+            const saturation = 40 + ratio * 60;
+            const lightness = 90 - ratio * 70;
+            
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        }
+
+        // Create grid
+        const heatmap = document.getElementById('heatmap');
+        
+        // Create 25 cells (5x5 grid)
+        // Numbered right to left, bottom to top
+        for (let row = 0; row < 5; row++) {
+            for (let col = 0; col < 5; col++) {
+                const rowFromBottom = 4 - row;
+                const colFromRight = 4 - col;
+                const position = rowFromBottom * 5 + colFromRight + 1;
+                
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                
+                if (data[position] !== undefined) {
+                    cell.style.background = getColor(data[position]);
+                    
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'tooltip';
+                    tooltip.textContent = data[position];
+                    cell.appendChild(tooltip);
+                } else {
+                    cell.classList.add('empty-cell');
+                }
+                
+                heatmap.appendChild(cell);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 50px;
+            padding: 40px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .heatmap-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .heatmap-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .heatmap-wrapper {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .matrix {
+            display: grid;
+            grid-template-columns: repeat(5, 60px);
+            grid-template-rows: repeat(5, 60px);
+            gap: 2px;
+        }
+        
+        .cell {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .cell:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            pointer-events: none;
+            margin-bottom: 8px;
+            z-index: 100;
+        }
+        
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #333;
+        }
+        
+        .cell:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .empty-cell {
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="heatmap-section">
+        <div class="heatmap-title">24P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-24p-left"></div>
+            <div class="matrix" id="matrix-24p-right"></div>
+        </div>
+    </div>
+    
+    <div class="heatmap-section">
+        <div class="heatmap-title">23P</div>
+        <div class="heatmap-wrapper">
+            <div class="matrix" id="matrix-23p-left"></div>
+            <div class="matrix" id="matrix-23p-right"></div>
+        </div>
+    </div>
+
+    <script>
+        // Data for 24_P (positions 1-50)
+        const data24P = {
+            1: 2.85, 2: 5.46, 3: 3.13, 4: 2.90, 5: 2.76,
+            6: 0.16, 7: 0.48, 8: 0.60, 9: 0.15, 10: 0.18,
+            11: 0.61, 12: 0.16, 13: 0.17, 14: 0.16, 15: 0.77,
+            16: 0.16, 17: 1.47, 18: 0.18, 19: 0.18, 20: 0.26,
+            21: 0.48, 22: 0.17, 23: 0.17, 24: 0.20, 25: 0.19,
+            26: 41.39, 27: 38.17, 28: 60.31, 29: 44.48, 30: 34.44,
+            31: 0.18, 32: 0.45, 33: 0.16, 34: 0.16, 35: 0.17,
+            36: 0.23, 37: 0.06, 38: 0.05, 39: 0.22, 40: 0.08,
+            41: 0.32, 42: 0.07, 43: 0.06, 44: 0.18, 45: 0.04,
+            46: 0.05, 47: 0.75, 48: 0.32, 49: 0.07, 50: 0.45
+        };
+
+        // Data for 23_P (positions 1-50)
+        const data23P = {
+            1: 30.54, 2: 32.93, 3: 32.35, 4: 35.26, 5: 32.35,
+            6: 2.67, 7: 0.16, 8: 0.18, 9: 0.19, 10: 1.50,
+            11: 0.18, 12: 0.20, 13: 0.24, 14: 0.28, 15: 0.31,
+            16: 0.17, 17: 0.17, 18: 0.17, 19: 0.17, 20: 0.17,
+            21: 0.17, 22: 0.16, 23: 0.17, 24: 0.17, 25: 0.18,
+            26: 35.34, 27: 25.56, 28: 31.67, 29: 70.42, 30: 41.97,
+            31: 0.50, 32: 3.91, 33: 0.48, 34: 0.37, 35: 0.96,
+            36: 0.18, 37: 0.19, 38: 0.18, 39: 0.18, 40: 0.25,
+            41: 0.17, 42: 0.16, 43: 0.17, 44: 0.21, 45: 0.16,
+            46: 0.17, 47: 0.18, 48: 0.17, 49: 0.16, 50: 0.16
+        };
+
+        // Color function - higher value = darker blue, enhanced sensitivity at low values
+        function getColor(value, minVal, maxVal) {
+            // Use natural log for more sensitivity at low values
+            const lnMin = Math.log(minVal + 0.0001);
+            const lnMax = Math.log(maxVal + 0.0001);
+            const lnVal = Math.log(value + 0.0001);
+            
+            // Normalize to 0-1 range
+            let ratio = (lnVal - lnMin) / (lnMax - lnMin);
+            ratio = Math.max(0, Math.min(1, ratio));
+            
+            // Apply square root for extra sensitivity at low values
+            ratio = Math.pow(ratio, 0.6);
+            
+            // Extended gradient with more color stops for better differentiation
+            const hue = 210;
+            const saturation = 40 + ratio * 60; // 40% to 100%
+            const lightness = 90 - ratio * 70;   // 90% (very light) to 20% (dark)
+            
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        }
+
+        // Create a 5x5 matrix
+        function createMatrix(containerId, data, startPos, minVal, maxVal) {
+            const container = document.getElementById(containerId);
+            
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 5; col++) {
+                    const rowFromBottom = 4 - row;
+                    const position = startPos + rowFromBottom * 5 + col;
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    if (data[position] !== undefined) {
+                        cell.style.background = getColor(data[position], minVal, maxVal);
+                        
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'tooltip';
+                        tooltip.textContent = data[position];
+                        cell.appendChild(tooltip);
+                    } else {
+                        cell.classList.add('empty-cell');
+                    }
+                    
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        // GLOBAL scale across ALL heatmaps (all files use the same scale)
+        const globalMin = 0.001;
+        const globalMax = 70.42;
+
+        // Create heatmaps with global scale
+        function createHeatmap(leftId, rightId, data) {
+            createMatrix(leftId, data, 1, globalMin, globalMax);   // positions 1-25
+            createMatrix(rightId, data, 26, globalMin, globalMax); // positions 26-50
+        }
+
+        // Create both heatmaps
+        createHeatmap('matrix-24p-left', 'matrix-24p-right', data24P);
+        createHeatmap('matrix-23p-left', 'matrix-23p-right', data23P);
+    </script>
+</body>
+</html>

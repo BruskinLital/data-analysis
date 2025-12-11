@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מפת חום - רצפה</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Heebo', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 30px;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #8892b0;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        
+        .sections-container {
+            display: flex;
+            flex-direction: column;
+            gap: 50px;
+        }
+        
+        .heatmap-section {
+            background: rgba(255,255,255,0.03);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            color: #ccd6f6;
+        }
+        
+        .section-title.blue {
+            color: #64ffda;
+        }
+        
+        .section-title.red {
+            color: #ff6b6b;
+        }
+        
+        .stats-bar {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #8892b0;
+            margin-bottom: 3px;
+        }
+        
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        
+        .stat-value.blue {
+            color: #64ffda;
+        }
+        
+        .stat-value.red {
+            color: #e94560;
+        }
+        
+        .legend {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .legend-bar {
+            width: 200px;
+            height: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        .legend-bar.blue-scale {
+            background: linear-gradient(90deg, 
+                hsl(180, 50%, 85%) 0%,
+                hsl(175, 60%, 65%) 30%,
+                hsl(170, 70%, 45%) 60%,
+                hsl(165, 80%, 30%) 100%
+            );
+        }
+        
+        .legend-bar.red-scale {
+            background: linear-gradient(90deg, 
+                hsl(40, 70%, 85%) 0%,
+                hsl(25, 80%, 65%) 30%,
+                hsl(10, 85%, 50%) 60%,
+                hsl(350, 90%, 30%) 100%
+            );
+        }
+        
+        .legend-label {
+            font-size: 0.85rem;
+            color: #ccd6f6;
+        }
+        
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 15px;
+        }
+        
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .column-header {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #8892b0;
+            padding: 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            margin-bottom: 5px;
+        }
+        
+        .cell {
+            padding: 14px 10px;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cell:hover {
+            transform: scale(1.05);
+            z-index: 10;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+        
+        .cell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 100%);
+            pointer-events: none;
+        }
+        
+        .cell-id {
+            font-size: 0.7rem;
+            opacity: 0.9;
+            margin-bottom: 3px;
+            font-weight: 600;
+        }
+        
+        .cell-value {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        
+        .tooltip {
+            position: fixed;
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid #e94560;
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-size: 0.9rem;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        
+        .tooltip.visible {
+            opacity: 1;
+        }
+        
+        .empty-cell {
+            background: rgba(255,255,255,0.02);
+            border: 1px dashed rgba(255,255,255,0.1);
+        }
+        
+        @media (max-width: 1200px) {
+            .grid-container {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .grid-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 מפת חום - נתוני רצפה</h1>
+        <p class="subtitle">שתי מפות חום עצמאיות - כל אחת עם סקאלת צבעים נפרדת</p>
+        
+        <div class="sections-container">
+            <!-- Section 1: Left Data (01_F_001 - 01_F_066) -->
+            <div class="heatmap-section">
+                <div class="section-header">
+                    <h2 class="section-title blue">📊 טור שמאלי (01_F_001 - 01_F_066)</h2>
+                    <div class="stats-bar">
+                        <div class="stat-item">
+                            <div class="stat-label">מקסימום</div>
+                            <div class="stat-value blue" id="max1">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">מינימום</div>
+                            <div class="stat-value blue" id="min1">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">ממוצע</div>
+                            <div class="stat-value blue" id="avg1">-</div>
+                        </div>
+                    </div>
+                    <div class="legend">
+                        <span class="legend-label">נמוך</span>
+                        <div class="legend-bar blue-scale"></div>
+                        <span class="legend-label">גבוה</span>
+                    </div>
+                </div>
+                <div class="grid-container" id="grid1"></div>
+            </div>
+            
+            <!-- Section 2: Right Data (01_F_067 - 01_F_096) -->
+            <div class="heatmap-section">
+                <div class="section-header">
+                    <h2 class="section-title red">📊 טור ימני (01_F_067 - 01_F_096)</h2>
+                    <div class="stats-bar">
+                        <div class="stat-item">
+                            <div class="stat-label">מקסימום</div>
+                            <div class="stat-value red" id="max2">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">מינימום</div>
+                            <div class="stat-value red" id="min2">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">ממוצע</div>
+                            <div class="stat-value red" id="avg2">-</div>
+                        </div>
+                    </div>
+                    <div class="legend">
+                        <span class="legend-label">נמוך</span>
+                        <div class="legend-bar red-scale"></div>
+                        <span class="legend-label">גבוה</span>
+                    </div>
+                </div>
+                <div class="grid-container" id="grid2"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Raw CSV data
+        const csvData = `01_F_001,2929.7,,,01_F_067,531.1
+01_F_002,393.1,,,01_F_068,228
+01_F_003,338.9,,,01_F_069,58
+01_F_004,340.1,,,01_F_070,25.4
+01_F_005,0.5,,,01_F_071,16.3
+01_F_006,0.3,,,01_F_072,13.9
+01_F_007,0.5,,,01_F_073,5.6
+01_F_008,0.7,,,01_F_074,7.1
+01_F_009,27.2,,,01_F_075,7
+01_F_010,29.1,,,01_F_076,3
+01_F_011,36.8,,,01_F_077,3.2
+01_F_012,18.5,,,01_F_078,2.1
+01_F_013,0.7,,,01_F_079,1.9
+01_F_014,0.5,,,01_F_080,1.7
+01_F_015,0.8,,,01_F_081,1.5
+01_F_016,0.9,,,01_F_082,2.51
+01_F_017,1.4,,,01_F_083,2.38
+01_F_018,4.7,,,01_F_084,1.27
+01_F_019,5.5,,,01_F_085,1.46
+01_F_020,213.3,,,01_F_086,0.85
+01_F_021,63.1,,,01_F_087,2.03
+01_F_022,15,,,01_F_088,1.05
+01_F_023,252.5,,,01_F_089,1.36
+01_F_024,133,,,01_F_090,1.68
+01_F_025,10.4,,,01_F_091,2.25
+01_F_026,11.7,,,01_F_092,0
+01_F_027,0.5,,,01_F_093,0
+01_F_028,0.6,,,01_F_094,1.7
+01_F_029,1.4,,,01_F_095,272.6
+01_F_030,1.3,,,01_F_096,6.29
+01_F_031,0.6,,,,
+01_F_032,0.4,,,,
+01_F_033,0.5,,,,
+01_F_034,38.111,,,,
+01_F_035,31.246,,,,
+01_F_036,3.665,,,,
+01_F_037,0.316,,,,
+01_F_038,0.254,,,,
+01_F_039,0.196,,,,
+01_F_040,0.313,,,,
+01_F_041,0.02,,,,
+01_F_042,0.124,,,,
+01_F_043,0.021,,,,
+01_F_044,0.008,,,,
+01_F_045,106.57,,,,
+01_F_046,53.36,,,,
+01_F_047,5.43,,,,
+01_F_048,0.32,,,,
+01_F_049,1.82,,,,
+01_F_050,0.67,,,,
+01_F_051,0.73,,,,
+01_F_052,0.02,,,,
+01_F_053,0.02,,,,
+01_F_054,0.03,,,,
+01_F_055,0.04,,,,
+01_F_056,108.48,,,,
+01_F_057,53.56,,,,
+01_F_058,4.98,,,,
+01_F_059,0.26,,,,
+01_F_060,0.52,,,,
+01_F_061,0.71,,,,
+01_F_062,0.05,,,,
+01_F_063,0.04,,,,
+01_F_064,0.87,,,,
+01_F_065,0.36,,,,
+01_F_066,0.13,,,,`;
+
+        // Parse CSV
+        const lines = csvData.trim().split('\n');
+        const data1 = [];
+        const data2 = [];
+        
+        lines.forEach(line => {
+            const parts = line.split(',');
+            if (parts[0] && parts[1]) {
+                data1.push({ id: parts[0], value: parseFloat(parts[1]) });
+            }
+            if (parts[4] && parts[5]) {
+                data2.push({ id: parts[4], value: parseFloat(parts[5]) });
+            }
+        });
+        
+        // Calculate stats for each dataset independently
+        function calcStats(data) {
+            const values = data.map(d => d.value).filter(v => !isNaN(v));
+            return {
+                max: Math.max(...values),
+                min: Math.min(...values),
+                avg: values.reduce((a, b) => a + b, 0) / values.length
+            };
+        }
+        
+        const stats1 = calcStats(data1);
+        const stats2 = calcStats(data2);
+        
+        // Update stats display
+        document.getElementById('max1').textContent = stats1.max.toFixed(2);
+        document.getElementById('min1').textContent = stats1.min.toFixed(2);
+        document.getElementById('avg1').textContent = stats1.avg.toFixed(2);
+        
+        document.getElementById('max2').textContent = stats2.max.toFixed(2);
+        document.getElementById('min2').textContent = stats2.min.toFixed(2);
+        document.getElementById('avg2').textContent = stats2.avg.toFixed(2);
+        
+        // Color functions - independent scales
+        function getColorBlue(value, min, max) {
+            const logMin = Math.log10(min + 1);
+            const logMax = Math.log10(max + 1);
+            const logVal = Math.log10(value + 1);
+            const ratio = (logVal - logMin) / (logMax - logMin);
+            
+            // Teal/Cyan gradient
+            const hue = 180 - (ratio * 20);
+            const saturation = 50 + (ratio * 40);
+            const lightness = 85 - (ratio * 55);
+            
+            return {
+                bg: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+                text: lightness < 45 ? '#fff' : '#1a1a2e'
+            };
+        }
+        
+        function getColorRed(value, min, max) {
+            const logMin = Math.log10(min + 1);
+            const logMax = Math.log10(max + 1);
+            const logVal = Math.log10(value + 1);
+            const ratio = (logVal - logMin) / (logMax - logMin);
+            
+            // Orange to Red gradient
+            const hue = 40 - (ratio * 50);
+            const saturation = 70 + (ratio * 25);
+            const lightness = 85 - (ratio * 55);
+            
+            return {
+                bg: `hsl(${hue < 0 ? 360 + hue : hue}, ${saturation}%, ${lightness}%)`,
+                text: lightness < 45 ? '#fff' : '#1a1a2e'
+            };
+        }
+        
+        // Create grid with 6 columns, 11 items each
+        function createGrid(data, containerId, colorFunc, stats) {
+            const container = document.getElementById(containerId);
+            const itemsPerColumn = 11;
+            const numColumns = 6;
+            
+            for (let col = 0; col < numColumns; col++) {
+                const columnDiv = document.createElement('div');
+                columnDiv.className = 'column';
+                
+                // Column header
+                const startIdx = col * itemsPerColumn;
+                const endIdx = Math.min(startIdx + itemsPerColumn - 1, data.length - 1);
+                
+                if (startIdx < data.length) {
+                    const header = document.createElement('div');
+                    header.className = 'column-header';
+                    const startNum = data[startIdx]?.id.replace('01_F_', '') || '';
+                    const endNum = data[endIdx]?.id.replace('01_F_', '') || '';
+                    header.textContent = `${startNum} - ${endNum}`;
+                    columnDiv.appendChild(header);
+                }
+                
+                // Cells
+                for (let i = 0; i < itemsPerColumn; i++) {
+                    const dataIdx = col * itemsPerColumn + i;
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    if (dataIdx < data.length && data[dataIdx] && !isNaN(data[dataIdx].value)) {
+                        const item = data[dataIdx];
+                        const colors = colorFunc(item.value, stats.min, stats.max);
+                        cell.style.backgroundColor = colors.bg;
+                        cell.style.color = colors.text;
+                        
+                        const shortId = item.id.replace('01_F_', '');
+                        cell.innerHTML = `
+                            <div class="cell-id">${shortId}</div>
+                            <div class="cell-value">${item.value}</div>
+                        `;
+                        
+                        // Tooltip
+                        cell.addEventListener('mouseenter', (e) => {
+                            const tooltip = document.getElementById('tooltip');
+                            const percentile = ((item.value - stats.min) / (stats.max - stats.min) * 100).toFixed(1);
+                            tooltip.innerHTML = `
+                                <strong>${item.id}</strong><br>
+                                ערך: ${item.value}<br>
+                                אחוזון בקבוצה: ${percentile}%
+                            `;
+                            tooltip.classList.add('visible');
+                        });
+                        
+                        cell.addEventListener('mousemove', (e) => {
+                            const tooltip = document.getElementById('tooltip');
+                            tooltip.style.left = (e.clientX + 15) + 'px';
+                            tooltip.style.top = (e.clientY + 15) + 'px';
+                        });
+                        
+                        cell.addEventListener('mouseleave', () => {
+                            document.getElementById('tooltip').classList.remove('visible');
+                        });
+                    } else {
+                        cell.classList.add('empty-cell');
+                    }
+                    
+                    columnDiv.appendChild(cell);
+                }
+                
+                container.appendChild(columnDiv);
+            }
+        }
+        
+        createGrid(data1, 'grid1', getColorBlue, stats1);
+        createGrid(data2, 'grid2', getColorRed, stats2);
+    </script>
+</body>
+</html>
