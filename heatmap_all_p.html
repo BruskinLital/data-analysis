@@ -51,12 +51,47 @@
             position: relative;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
         .cell:hover {
             transform: scale(1.08);
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             z-index: 10;
+        }
+        
+        .cell-value {
+            font-size: 9px;
+            font-weight: 600;
+            text-shadow: 
+                -1px -1px 0 rgba(255,255,255,0.8),
+                1px -1px 0 rgba(255,255,255,0.8),
+                -1px 1px 0 rgba(255,255,255,0.8),
+                1px 1px 0 rgba(255,255,255,0.8),
+                0 0 3px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        
+        .cell-value.dark-bg {
+            color: white;
+            text-shadow: 
+                -1px -1px 0 rgba(0,0,0,0.8),
+                1px -1px 0 rgba(0,0,0,0.8),
+                -1px 1px 0 rgba(0,0,0,0.8),
+                1px 1px 0 rgba(0,0,0,0.8),
+                0 0 3px rgba(0,0,0,0.8);
+        }
+        
+        .cell-value.light-bg {
+            color: #1a1a1a;
+            text-shadow: 
+                -1px -1px 0 rgba(255,255,255,0.9),
+                1px -1px 0 rgba(255,255,255,0.9),
+                -1px 1px 0 rgba(255,255,255,0.9),
+                1px 1px 0 rgba(255,255,255,0.9),
+                0 0 3px rgba(255,255,255,0.8);
         }
         
         .tooltip {
@@ -339,7 +374,7 @@
         const globalMax = 100.99;  // Updated to include 17_P_05
 
         // ============== COLOR FUNCTION ==============
-        function getColor(value) {
+        function getColorInfo(value) {
             const lnMin = Math.log(globalMin + 0.0001);
             const lnMax = Math.log(globalMax + 0.0001);
             const lnVal = Math.log(value + 0.0001);
@@ -352,7 +387,17 @@
             const saturation = 40 + ratio * 60;
             const lightness = 90 - ratio * 70;
             
-            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+            return {
+                color: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+                isDark: lightness < 50
+            };
+        }
+        
+        // Format value for display
+        function formatValue(value) {
+            if (value >= 10) return value.toFixed(1);
+            if (value >= 1) return value.toFixed(2);
+            return value.toFixed(3);
         }
 
         // ============== CREATE MATRIX FUNCTIONS ==============
@@ -377,7 +422,14 @@
                     cell.className = 'cell';
                     
                     if (data[position] !== undefined) {
-                        cell.style.background = getColor(data[position]);
+                        const colorInfo = getColorInfo(data[position]);
+                        cell.style.background = colorInfo.color;
+                        
+                        // Add value text
+                        const valueText = document.createElement('span');
+                        valueText.className = 'cell-value ' + (colorInfo.isDark ? 'dark-bg' : 'light-bg');
+                        valueText.textContent = formatValue(data[position]);
+                        cell.appendChild(valueText);
                         
                         const tooltip = document.createElement('div');
                         tooltip.className = 'tooltip';
@@ -406,7 +458,14 @@
                     cell.className = 'cell';
                     
                     if (data[position] !== undefined) {
-                        cell.style.background = getColor(data[position]);
+                        const colorInfo = getColorInfo(data[position]);
+                        cell.style.background = colorInfo.color;
+                        
+                        // Add value text
+                        const valueText = document.createElement('span');
+                        valueText.className = 'cell-value ' + (colorInfo.isDark ? 'dark-bg' : 'light-bg');
+                        valueText.textContent = formatValue(data[position]);
+                        cell.appendChild(valueText);
                         
                         const tooltip = document.createElement('div');
                         tooltip.className = 'tooltip';
