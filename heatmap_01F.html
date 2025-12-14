@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>01F Heatmap</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 40px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .heatmap-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .heatmap-wrapper {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .matrix {
+            display: grid;
+            grid-template-columns: repeat(6, 65px);
+            grid-template-rows: repeat(11, 45px);
+            gap: 2px;
+        }
+        
+        .cell {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .cell:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        
+        .cell-value {
+            font-size: 9px;
+            font-weight: 600;
+            text-shadow: 
+                -1px -1px 0 rgba(255,255,255,0.8),
+                1px -1px 0 rgba(255,255,255,0.8),
+                -1px 1px 0 rgba(255,255,255,0.8),
+                1px 1px 0 rgba(255,255,255,0.8),
+                0 0 3px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        
+        .cell-value.dark-bg {
+            color: white;
+            text-shadow: 
+                -1px -1px 0 rgba(0,0,0,0.8),
+                1px -1px 0 rgba(0,0,0,0.8),
+                -1px 1px 0 rgba(0,0,0,0.8),
+                1px 1px 0 rgba(0,0,0,0.8),
+                0 0 3px rgba(0,0,0,0.8);
+        }
+        
+        .cell-value.light-bg {
+            color: #1a1a1a;
+            text-shadow: 
+                -1px -1px 0 rgba(255,255,255,0.9),
+                1px -1px 0 rgba(255,255,255,0.9),
+                -1px 1px 0 rgba(255,255,255,0.9),
+                1px 1px 0 rgba(255,255,255,0.9),
+                0 0 3px rgba(255,255,255,0.8);
+        }
+        
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            pointer-events: none;
+            margin-bottom: 8px;
+            z-index: 100;
+        }
+        
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #333;
+        }
+        
+        .cell:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .column-labels {
+            display: grid;
+            grid-template-columns: repeat(6, 65px);
+            gap: 2px;
+            margin-bottom: 5px;
+        }
+        
+        .column-label {
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="heatmap-title">01F</div>
+    
+    <div class="column-labels">
+        <div class="column-label">1-11</div>
+        <div class="column-label">12-22</div>
+        <div class="column-label">23-33</div>
+        <div class="column-label">34-44</div>
+        <div class="column-label">45-55</div>
+        <div class="column-label">56-66</div>
+    </div>
+    
+    <div class="heatmap-wrapper">
+        <div class="matrix" id="matrix-01f"></div>
+    </div>
+
+    <script>
+        // 01_F data - mapped by sample ID number to position
+        // Data from: רצפה דיווח תוצאות 19.11.25 B.csv
+        const data01F = {
+            // Column 1 (positions 1-11)
+            1: 2929.7,    // 01_F_001
+            2: 393.1,     // 01_F_002
+            3: 338.9,     // 01_F_003
+            4: 340.1,     // 01_F_004
+            5: 0.5,       // 01_F_005
+            6: 0.3,       // 01_F_006
+            7: 0.5,       // 01_F_007
+            8: 0.7,       // 01_F_008
+            9: 27.2,      // 01_F_009
+            10: 29.1,     // 01_F_010
+            11: 36.8,     // 01_F_011
+            
+            // Column 2 (positions 12-22)
+            12: 18.5,     // 01_F_012
+            13: 0.7,      // 01_F_013
+            14: 0.5,      // 01_F_014
+            15: 0.8,      // 01_F_015
+            16: 0.9,      // 01_F_016
+            17: 1.4,      // 01_F_017
+            18: 4.7,      // 01_F_018
+            19: 5.5,      // 01_F_019
+            20: 213.3,    // 01_F_020
+            21: 63.1,     // 01_F_021
+            22: 15,       // 01_F_022
+            
+            // Column 3 (positions 23-33)
+            23: 252.5,    // 01_F_023
+            24: 133,      // 01_F_024
+            25: 10.4,     // 01_F_025
+            26: 11.7,     // 01_F_026
+            27: 0.5,      // 01_F_027
+            28: 0.6,      // 01_F_028
+            29: 1.4,      // 01_F_029
+            30: 1.3,      // 01_F_030
+            31: 0.6,      // 01_F_031
+            32: 0.4,      // 01_F_032
+            33: 0.5,      // 01_F_033
+            
+            // Column 4 (positions 34-44)
+            34: 38.111,   // 01_F_034
+            35: 31.246,   // 01_F_035
+            36: 3.665,    // 01_F_036
+            37: 0.316,    // 01_F_037
+            38: 0.254,    // 01_F_038
+            39: 0.196,    // 01_F_039
+            40: 0.313,    // 01_F_040
+            41: 0.02,     // 01_F_041
+            42: 0.124,    // 01_F_042
+            43: 0.021,    // 01_F_043
+            44: 0.008,    // 01_F_044
+            
+            // Column 5 (positions 45-55)
+            45: 106.57,   // 01_F_045
+            46: 53.36,    // 01_F_046
+            47: 5.43,     // 01_F_047
+            48: 0.32,     // 01_F_048
+            49: 1.82,     // 01_F_049
+            50: 0.67,     // 01_F_050
+            51: 0.73,     // 01_F_051
+            52: 0.02,     // 01_F_052
+            53: 0.02,     // 01_F_053
+            54: 0.03,     // 01_F_054
+            55: 0.04,     // 01_F_055
+            
+            // Column 6 (positions 56-66)
+            56: 108.48,   // 01_F_056
+            57: 53.56,    // 01_F_057
+            58: 4.98,     // 01_F_058
+            59: 0.26,     // 01_F_059
+            60: 0.52,     // 01_F_060
+            61: 0.71,     // 01_F_061
+            62: 0.05,     // 01_F_062
+            63: 0.04,     // 01_F_063
+            64: 0.87,     // 01_F_064
+            65: 0.36,     // 01_F_065
+            66: 0.13      // 01_F_066
+        };
+
+        // Calculate global min/max for color scale
+        const values = Object.values(data01F);
+        const globalMin = Math.min(...values);
+        const globalMax = Math.max(...values);
+
+        // Color function - same as reference file
+        function getColorInfo(value) {
+            const lnMin = Math.log(globalMin + 0.0001);
+            const lnMax = Math.log(globalMax + 0.0001);
+            const lnVal = Math.log(value + 0.0001);
+            
+            let ratio = (lnVal - lnMin) / (lnMax - lnMin);
+            ratio = Math.max(0, Math.min(1, ratio));
+            ratio = Math.pow(ratio, 0.6);
+            
+            const hue = 210;
+            const saturation = 40 + ratio * 60;
+            const lightness = 90 - ratio * 70;
+            
+            return {
+                color: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+                isDark: lightness < 50
+            };
+        }
+        
+        // Format value for display
+        function formatValue(value) {
+            if (value >= 100) return value.toFixed(0);
+            if (value >= 10) return value.toFixed(1);
+            if (value >= 1) return value.toFixed(2);
+            return value.toFixed(3);
+        }
+
+        // Create 6x11 matrix (6 columns, 11 rows)
+        function createMatrix() {
+            const container = document.getElementById('matrix-01f');
+            if (!container) return;
+            
+            for (let row = 0; row < 11; row++) {
+                for (let col = 0; col < 6; col++) {
+                    // Position: column * 11 + row + 1
+                    const position = col * 11 + row + 1;
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    const value = data01F[position];
+                    const colorInfo = getColorInfo(value);
+                    cell.style.background = colorInfo.color;
+                    
+                    // Add value text
+                    const valueText = document.createElement('span');
+                    valueText.className = 'cell-value ' + (colorInfo.isDark ? 'dark-bg' : 'light-bg');
+                    valueText.textContent = formatValue(value);
+                    cell.appendChild(valueText);
+                    
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'tooltip';
+                    tooltip.textContent = `01_F_${String(position).padStart(3, '0')}: ${value}`;
+                    cell.appendChild(tooltip);
+                    
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        // Build heatmap
+        createMatrix();
+    </script>
+</body>
+</html>
