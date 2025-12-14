@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>גרף מניות ישראליות - 30 ימים אחרונים</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #888;
+            font-size: 1.1rem;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .control-group label {
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        
+        .stock-select {
+            padding: 12px 20px;
+            font-size: 1rem;
+            border: 2px solid #3a3a5a;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            cursor: pointer;
+            min-width: 250px;
+            transition: all 0.3s ease;
+        }
+        
+        .stock-select:hover {
+            border-color: #00d4ff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .stock-select:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+        
+        .stock-select option {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 10px;
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 450px;
+        }
+        
+        .stock-info {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .info-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px 30px;
+            text-align: center;
+            min-width: 150px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .info-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .info-card .label {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        
+        .info-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .info-card .value.positive {
+            color: #00ff88;
+        }
+        
+        .info-card .value.negative {
+            color: #ff4757;
+        }
+        
+        .info-card .value.neutral {
+            color: #00d4ff;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            text-align: center;
+            padding: 30px;
+            color: #ff4757;
+            display: none;
+        }
+        
+        .error-message.active {
+            display: block;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .chart-wrapper {
+                height: 300px;
+            }
+            
+            .stock-select {
+                min-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 גרף מניות ישראליות</h1>
+            <p>השתנות מחירים ב-30 ימים אחרונים</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>בחר מניה:</label>
+                <select id="stockSelect" class="stock-select">
+                    <option value="TEVA.TA">טבע - TEVA</option>
+                    <option value="LUMI.TA">לאומי - LUMI</option>
+                    <option value="POLI.TA">פועלים - POLI</option>
+                    <option value="DSCT.TA">דיסקונט - DSCT</option>
+                    <option value="MZTF.TA">מזרחי טפחות - MZTF</option>
+                    <option value="ICL.TA">ICL - כיל</option>
+                    <option value="BEZQ.TA">בזק - BEZQ</option>
+                    <option value="ELCO.TA">אלקו - ELCO</option>
+                    <option value="NICE.TA">נייס - NICE</option>
+                    <option value="CHKP.TA">צ'ק פוינט - CHKP</option>
+                    <option value="ESLT.TA">אלביט - ESLT</option>
+                    <option value="ORA.TA">אורמת - ORA</option>
+                    <option value="PHOE.TA">הפניקס - PHOE</option>
+                    <option value="MGDL.TA">מגדל - MGDL</option>
+                    <option value="CLAL.TA">כלל ביטוח - CLAL</option>
+                    <option value="CEL.TA">סלקום - CEL</option>
+                    <option value="PTCH.TA">פרטנר - PTCH</option>
+                    <option value="AZRG.TA">עזריאלי - AZRG</option>
+                    <option value="AMOT.TA">אמות - AMOT</option>
+                    <option value="MELR.TA">מליסרון - MELR</option>
+                    <option value="DELK.TA">דלק - DELK</option>
+                    <option value="NGAS.TA">נפאגז - NGAS</option>
+                    <option value="ENER.TA">אנרג'יקס - ENER</option>
+                    <option value="STRA.TA">שטראוס - STRA</option>
+                    <option value="OPK.TA">אופקו - OPK</option>
+                </select>
+            </div>
+            <div class="control-group" style="justify-content: flex-end;">
+                <label>&nbsp;</label>
+                <button class="refresh-btn" onclick="loadStockData()">🔄 רענן נתונים</button>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>טוען נתוני מניה...</p>
+            </div>
+            
+            <div class="error-message" id="errorMessage">
+                <p>⚠️ לא ניתן לטעון נתונים. מציג נתוני דמו.</p>
+            </div>
+            
+            <div class="chart-wrapper">
+                <canvas id="stockChart"></canvas>
+            </div>
+            
+            <div class="stock-info" id="stockInfo">
+                <div class="info-card">
+                    <div class="label">מחיר נוכחי</div>
+                    <div class="value neutral" id="currentPrice">-</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">שינוי 30 יום</div>
+                    <div class="value" id="changePercent">-</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">שיא 30 יום</div>
+                    <div class="value neutral" id="highPrice">-</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">שפל 30 יום</div>
+                    <div class="value neutral" id="lowPrice">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let stockChart = null;
+        
+        // Demo data for stocks (fallback)
+        const demoData = {
+            'TEVA.TA': generateDemoData(52, 58, 30),
+            'LUMI.TA': generateDemoData(28, 32, 30),
+            'POLI.TA': generateDemoData(25, 29, 30),
+            'DSCT.TA': generateDemoData(22, 26, 30),
+            'MZTF.TA': generateDemoData(120, 135, 30),
+            'ICL.TA': generateDemoData(18, 22, 30),
+            'BEZQ.TA': generateDemoData(4, 5, 30),
+            'ELCO.TA': generateDemoData(95, 105, 30),
+            'NICE.TA': generateDemoData(750, 820, 30),
+            'CHKP.TA': generateDemoData(680, 750, 30),
+            'ESLT.TA': generateDemoData(750, 850, 30),
+            'ORA.TA': generateDemoData(280, 320, 30),
+            'PHOE.TA': generateDemoData(45, 52, 30),
+            'MGDL.TA': generateDemoData(38, 44, 30),
+            'CLAL.TA': generateDemoData(55, 62, 30),
+            'CEL.TA': generateDemoData(42, 48, 30),
+            'PTCH.TA': generateDemoData(35, 40, 30),
+            'AZRG.TA': generateDemoData(280, 310, 30),
+            'AMOT.TA': generateDemoData(48, 54, 30),
+            'MELR.TA': generateDemoData(52, 58, 30),
+            'DELK.TA': generateDemoData(85, 95, 30),
+            'NGAS.TA': generateDemoData(420, 480, 30),
+            'ENER.TA': generateDemoData(25, 30, 30),
+            'STRA.TA': generateDemoData(95, 105, 30),
+            'OPK.TA': generateDemoData(6, 8, 30)
+        };
+        
+        function generateDemoData(minPrice, maxPrice, days) {
+            const data = [];
+            const today = new Date();
+            let price = minPrice + Math.random() * (maxPrice - minPrice);
+            
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                
+                // Skip weekends
+                if (date.getDay() === 0 || date.getDay() === 6) continue;
+                
+                // Random walk
+                const change = (Math.random() - 0.5) * (maxPrice - minPrice) * 0.08;
+                price = Math.max(minPrice * 0.9, Math.min(maxPrice * 1.1, price + change));
+                
+                data.push({
+                    date: date.toISOString().split('T')[0],
+                    close: parseFloat(price.toFixed(2))
+                });
+            }
+            return data;
+        }
+        
+        async function fetchStockData(symbol) {
+            // Try to fetch real data from Yahoo Finance via a CORS proxy
+            const proxyUrl = 'https://api.allorigins.win/raw?url=';
+            const period1 = Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000);
+            const period2 = Math.floor(Date.now() / 1000);
+            const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${period1}&period2=${period2}&interval=1d`;
+            
+            try {
+                const response = await fetch(proxyUrl + encodeURIComponent(yahooUrl), {
+                    timeout: 10000
+                });
+                
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                const data = await response.json();
+                
+                if (data.chart && data.chart.result && data.chart.result[0]) {
+                    const result = data.chart.result[0];
+                    const timestamps = result.timestamp;
+                    const closes = result.indicators.quote[0].close;
+                    
+                    const stockData = [];
+                    for (let i = 0; i < timestamps.length; i++) {
+                        if (closes[i] !== null) {
+                            const date = new Date(timestamps[i] * 1000);
+                            stockData.push({
+                                date: date.toISOString().split('T')[0],
+                                close: parseFloat(closes[i].toFixed(2))
+                            });
+                        }
+                    }
+                    return { data: stockData, isDemo: false };
+                }
+                throw new Error('Invalid data format');
+            } catch (error) {
+                console.log('Using demo data:', error);
+                return { data: demoData[symbol] || generateDemoData(50, 60, 30), isDemo: true };
+            }
+        }
+        
+        async function loadStockData() {
+            const symbol = document.getElementById('stockSelect').value;
+            const stockName = document.getElementById('stockSelect').options[document.getElementById('stockSelect').selectedIndex].text;
+            
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            loading.classList.add('active');
+            errorMessage.classList.remove('active');
+            
+            try {
+                const { data, isDemo } = await fetchStockData(symbol);
+                
+                loading.classList.remove('active');
+                
+                if (isDemo) {
+                    errorMessage.classList.add('active');
+                }
+                
+                updateChart(data, stockName);
+                updateStockInfo(data);
+            } catch (error) {
+                loading.classList.remove('active');
+                errorMessage.classList.add('active');
+                
+                const data = demoData[symbol] || generateDemoData(50, 60, 30);
+                updateChart(data, stockName);
+                updateStockInfo(data);
+            }
+        }
+        
+        function updateChart(data, stockName) {
+            const ctx = document.getElementById('stockChart').getContext('2d');
+            
+            const labels = data.map(d => d.date);
+            const prices = data.map(d => d.close);
+            
+            // Determine color based on trend
+            const firstPrice = prices[0];
+            const lastPrice = prices[prices.length - 1];
+            const isPositive = lastPrice >= firstPrice;
+            
+            const gradientColor = isPositive ? 
+                { start: 'rgba(0, 255, 136, 0.3)', end: 'rgba(0, 255, 136, 0)' } :
+                { start: 'rgba(255, 71, 87, 0.3)', end: 'rgba(255, 71, 87, 0)' };
+            const lineColor = isPositive ? '#00ff88' : '#ff4757';
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, gradientColor.start);
+            gradient.addColorStop(1, gradientColor.end);
+            
+            if (stockChart) {
+                stockChart.destroy();
+            }
+            
+            stockChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${stockName} (₪)`,
+                        data: prices,
+                        borderColor: lineColor,
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: lineColor,
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#fff',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            titleFont: { size: 14 },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                title: function(context) {
+                                    const date = new Date(context[0].label);
+                                    return date.toLocaleDateString('he-IL', { 
+                                        weekday: 'long', 
+                                        year: 'numeric', 
+                                        month: 'long', 
+                                        day: 'numeric' 
+                                    });
+                                },
+                                label: function(context) {
+                                    return `מחיר: ₪${context.raw.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#888',
+                                maxRotation: 45,
+                                callback: function(value, index) {
+                                    if (index % 5 === 0) {
+                                        const date = new Date(this.getLabelForValue(value));
+                                        return date.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
+                                    }
+                                    return '';
+                                }
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#888',
+                                callback: function(value) {
+                                    return '₪' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateStockInfo(data) {
+            const prices = data.map(d => d.close);
+            const firstPrice = prices[0];
+            const lastPrice = prices[prices.length - 1];
+            const highPrice = Math.max(...prices);
+            const lowPrice = Math.min(...prices);
+            const changePercent = ((lastPrice - firstPrice) / firstPrice * 100).toFixed(2);
+            
+            document.getElementById('currentPrice').textContent = `₪${lastPrice.toFixed(2)}`;
+            
+            const changeElement = document.getElementById('changePercent');
+            changeElement.textContent = `${changePercent > 0 ? '+' : ''}${changePercent}%`;
+            changeElement.className = 'value ' + (changePercent >= 0 ? 'positive' : 'negative');
+            
+            document.getElementById('highPrice').textContent = `₪${highPrice.toFixed(2)}`;
+            document.getElementById('lowPrice').textContent = `₪${lowPrice.toFixed(2)}`;
+        }
+        
+        // Event listener for stock selection
+        document.getElementById('stockSelect').addEventListener('change', loadStockData);
+        
+        // Load initial data
+        loadStockData();
+    </script>
+</body>
+</html>
